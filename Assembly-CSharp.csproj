@@ -56,6 +56,13 @@
     <Compile Include="Assets\Scripts\SceneManager.cs" />
     <Compile Include="Assets\Scripts\HandRendererOne.cs" />
     <Compile Include="Assets\Scripts\PythonCommunicator.cs" />
+    <Compile Include="Assets\Scripts\Server.cs" />
+    <Compile Include="Assets\Scripts\Client.cs" />
+    <Compile Include="Assets\Scripts\Packets.cs" />
+    <Compile Include="Assets\Scripts\ThreadManager.cs" />
+    <Compile Include="Assets\Scripts\PacketHandler.cs" />
+    <Compile Include="Assets\Scripts\ServerHandler.cs" />
+    <Compile Include="Assets\Scripts\ServerSend.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="UnityEngine">
