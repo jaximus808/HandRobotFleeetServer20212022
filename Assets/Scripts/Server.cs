@@ -4,33 +4,34 @@ using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 using UnityEngine;
+using System.Threading.Tasks;
 
 public class Server
 {
-    public static int MaxPlayers { get; private set; }
-    public static int Connections {get;private set;}
-    public static int Port {get;private set;}
-    public static Dictionary<int,Client> clients = new Dictionary<int, Client>();
-    public delegate void PacketsHandler(int _fromClient, Packets _packet);
-    public static Dictionary<int,PacketsHandler> packetHandlers;
-
-    private static TcpListener tcpListener;
-    private static UdpClient udpListener; 
-    
-
-    // Start is called before the first frame update
-    public static void Start(int _port)
+    public int ip {get;private set;}
+    public int port {get; private set;}
+    public void Start(string _ip, int _port)
     {
-        MaxPlayers = 1;
-        Port = _port;
+        port = _port;
+        var endPoint = new IPEndPoint(IPAddress.Loopback, port);
+        
+        var socket = new Socket(endPoint.AddressFamily, SocketType.Stream, ProtocolType.Udp);
+        socket.Bind(endPoint);
+        socket.Listen(128);
 
-        Debug.Log("Server Starting");
-        CreateServerData();
+        _ = Task.Run( ()=> DoEcho(socket));
+
     }
 
-    // Update is called once per frame
-    private static void CreateServerData()
+    private async Task DoEcho(Socket socket)
     {
-        
+        do 
+        {
+            var clientSocket = await Task.Factory.FromAsync(
+                new Func<AsyncCallback, object, IAsyncResult>(socket.BeginAccept),
+                new Func<IAsyncResult, Socket>(socket.EndAccept),
+                null).ConfigureAwait(false);
+        }
+        while(true);
     }
 }
