@@ -53,9 +53,16 @@ public class PythonCommunicator : MonoBehaviour
             {
                 IPEndPoint anyIP = new IPEndPoint(IPAddress.Any, 0);
                 byte[] data = client.Receive(ref anyIP);
-                string text = Encoding.UTF8.GetString(data);
-                print(">> " + text);
-                ProcessInput(text);
+                // bool hnads = Encoding.UTF8.GetString(data);
+                Packet packet = new Packet(data);
+                bool hands = packet.ReadBool();
+                if(hands)
+                {
+                    float check = packet.ReadFloat();
+                    Debug.Log(check);
+                }
+                Debug.Log(hands);
+                ProcessInput(packet);
             }
             catch (Exception err)
             {
@@ -63,7 +70,7 @@ public class PythonCommunicator : MonoBehaviour
             }
         }
     }
-    private void ProcessInput(string input)
+    private void ProcessInput(Packet input)
     {
         // PROCESS INPUT RECEIVED STRING HERE
 

@@ -2,17 +2,11 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class PacketHandler : MonoBehaviour
+public static class PacketHandler 
 {
-    // Start is called before the first frame update
-    void Start()
+    // Maybe deprecate
+    public static Packet CreatePacke(byte[] data)
     {
-        
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        
+        return new Packet(data);
     }
 }
