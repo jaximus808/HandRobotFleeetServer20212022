@@ -29,4 +29,17 @@ public class Packet
         return data; 
     }
 
+    public int ReadInt()
+    {
+        if(bytes.Length < readPos) throw new Exception("Cannot read Int: You are out of range");
+        int data = BitConverter.ToInt32(bytes, readPos);
+        readPos+=4;
+        return data; 
+    }
+
+    public Vector3 ReadVector3()
+    {
+        return new Vector3(ReadFloat(),ReadFloat(),ReadFloat());
+    }
+
 }

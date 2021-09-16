@@ -10,6 +10,10 @@ using System.Threading;
 public class PythonCommunicator : MonoBehaviour
 {
     // Start is called before the first frame update
+
+    //going to need a python communicator object reference 
+
+
     public bool active = false; 
 
     public int inPort = 8000; //port to receive data
@@ -58,8 +62,15 @@ public class PythonCommunicator : MonoBehaviour
                 bool hands = packet.ReadBool();
                 if(hands)
                 {
-                    float check = packet.ReadFloat();
-                    Debug.Log(check);
+                    int handCount = packet.ReadInt();
+                    int right = packet.ReadInt();
+                    //test floats
+                    for(int i = 0; i < 20*handCount; i++)
+                    {
+                        Vector3 points = packet.ReadVector3();
+                        Debug.Log(points);
+                    }
+                    
                 }
                 Debug.Log(hands);
                 ProcessInput(packet);
@@ -70,6 +81,7 @@ public class PythonCommunicator : MonoBehaviour
             }
         }
     }
+
     private void ProcessInput(Packet input)
     {
         // PROCESS INPUT RECEIVED STRING HERE
