@@ -12,7 +12,7 @@ public class PythonCommunicator : MonoBehaviour
     // Start is called before the first frame update
 
     //going to need a python communicator object reference 
-
+    public HandRendererOne[] HandManagers; 
 
     public bool active = false; 
 
@@ -49,6 +49,18 @@ public class PythonCommunicator : MonoBehaviour
 
     }
 
+    private Vector3[] ReadHandPoints(Packet packet)
+    {
+        Vector3[] data = new Vector3[21];
+        for(int i = 0; i < 21; i++)
+        {
+            data[i] = packet.ReadVector3();
+            Debug.Log(data[i]);
+            //Debug.Log(data[i]);
+        }
+        return data;
+    }
+
     private void ReceiveData()
     {
         while (true)
@@ -62,15 +74,22 @@ public class PythonCommunicator : MonoBehaviour
                 bool hands = packet.ReadBool();
                 if(hands)
                 {
+                    //can make this smaller
                     int handCount = packet.ReadInt();
-                    int right = packet.ReadInt();
-                    //test floats
-                    for(int i = 0; i < 20*handCount; i++)
+                    Debug.Log(handCount);
+                    bool right = packet.ReadBool();
+                    Debug.Log(handCount);
+                    int side = 0;
+                    if(right) side = 1;
+                    //test floatsZyy
+                    Vector3[] handPoints1 = ReadHandPoints(packet);
+                    //would then apply to hands but do later rn;
+                    HandManagers[side].UpdateHands(handPoints1);
+                    if(handCount == 2) 
                     {
-                        Vector3 points = packet.ReadVector3();
-                        Debug.Log(points);
+                        Vector3[] handPoints2 = ReadHandPoints(packet);
+                        HandManagers[Math.Abs(side-1)].UpdateHands(handPoints2);
                     }
-                    
                 }
                 Debug.Log(hands);
                 ProcessInput(packet);
