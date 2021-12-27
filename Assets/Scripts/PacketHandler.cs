@@ -8,7 +8,8 @@ public static class PacketHandler
     //packet 0
     public static void HandleNewConnection(int _fromClient, Packet _packet)
     {
-        UDPServer.CreateClient(_fromClient);
+        UDPServer.CreateClient(_fromClient,_packet.remoteEndPoint);
+        
     }
 
     //packet 1

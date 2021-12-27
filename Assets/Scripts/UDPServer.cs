@@ -55,7 +55,7 @@ public class UDPServer : MonoBehaviour
         remoteEndPoint = new IPEndPoint(IPAddress.Any, outPort);
         HandRenderer = sethand;
         client = new UdpClient(inPort);
-
+        client.BeginReceive(ReceiveUDPData,null);
         //0 connect
         //1 read and handle vector data
         packetHandlers = new Dictionary<int, Handler>()
@@ -64,9 +64,10 @@ public class UDPServer : MonoBehaviour
             {1, PacketHandler.HandleHand},
         };
 
-        receiveThread = new Thread(new ThreadStart(ReceiveData));
-        receiveThread.IsBackground = true; 
-        receiveThread.Start();
+
+        //receiveThread = new Thread(new ThreadStart(ReceiveData));
+        //receiveThread.IsBackground = true; 
+        //receiveThread.Start();
         Debug.Log("Listening");
 
     }
@@ -83,7 +84,7 @@ public class UDPServer : MonoBehaviour
         return data;
     }
 
-    public static void CreateClient(int _fromClient)
+    public static void CreateClient(int _fromClient, IPEndPoint endpoint)
     {
         int _id = 0;
         foreach (KeyValuePair<int, Client> _client in ConnectedClients)
@@ -98,73 +99,64 @@ public class UDPServer : MonoBehaviour
             }
         }
         ConnectedClients.Add(_id, new Client(_id));
+        ConnectedClients[_id].udp.Connect(endpoint);
         HandRendererOne leftHand = Instantiate(HandRenderer, new Vector3(-2f, 10f, 3.2f), Quaternion.identity).GetComponent<HandRendererOne>();
         HandRendererOne rightHand = Instantiate(HandRenderer, new Vector3(-7.7f, 10f, 3.2f), Quaternion.identity).GetComponent<HandRendererOne>();
         HandRendererOne[] newHands = new HandRendererOne[2] { leftHand, rightHand };
 
         HandManagers.Add(_id, newHands);
         Debug.Log("New Client Created!");
+        
+        //maybe create a better way of doing this lol
+        using (Packet packet = new Packet())
+        {
+            packet.Write(0);
+            packet.Write(_id);
+            ConnectedClients[_id].udp.SendData(packet);
+        }
     }
 
-    private void ReceiveData()
+    private void ReceiveUDPData(IAsyncResult _result)
     {
-        while (true)
+        
+        try
         {
-            try
-            {
-                IPEndPoint anyIP = new IPEndPoint(IPAddress.Any, 0);
-                byte[] data = client.Receive(ref anyIP);
+            IPEndPoint anyIP = new IPEndPoint(IPAddress.Any, 0);
+            byte[] data = client.EndReceive(_result,ref anyIP);
+            client.BeginReceive(ReceiveUDPData, null);
                 // bool hnads = Encoding.UTF8.GetString(data);
-                Packet packet = new Packet(data);
+            Packet packet = new Packet(data, anyIP);
                 //check for new client connection
-                int id = packet.ReadInt();
-                //if -1 means new connection 
-                if(id == -1 )
-                {
+            int id = packet.ReadInt();
+            //if -1 means new connection 
+            
+            if(id == -1 )
+            {
                     //will need to check if hand, or maybe attach to hand 
                     //new connection
-                   UDPServer.ExecuteOnMainThread(() =>
-                   {
-                       UDPServer.packetHandlers[0](id, packet);
-                   });
-
-                }
-                else if(ConnectedClients[id].udp.endPoint.ToString() == anyIP.ToString() )
+                UDPServer.ExecuteOnMainThread(() =>
                 {
+                    UDPServer.packetHandlers[0](id, packet);
+                });
 
-                    ConnectedClients[id].udp.HandleData(packet);
-                    //bool hands = packet.ReadBool();
-                    //if (hands)
-                    //{
-                    //    //can make this smaller
-                    //    int handCount = packet.ReadInt();
-                    //    Debug.Log(handCount);
-                    //    bool right = packet.ReadBool();
-                    //    Debug.Log(handCount);
-                    //    int side = 0;
-                    //    if (right) side = 1;
-                    //    //test floatsZyy
-                    //    Vector3[] handPoints1 = ReadHandPoints(packet);
-                    //    //would then apply to hands but do later rn;
-                    //    HandManagers[side].UpdateHands(handPoints1);
-                    //    if (handCount == 2)
-                    //    {
-                    //        Vector3[] handPoints2 = ReadHandPoints(packet);
-                    //        HandManagers[Math.Abs(side - 1)].UpdateHands(handPoints2);
-                    //    }
-                    //}
-                    //Debug.Log(hands);
-                    ProcessInput(packet);
-                }
+            }
+            else if(ConnectedClients[id].udp.endPoint.ToString() == anyIP.ToString() )
+            {
+                Debug.Log("sup");
+                Debug.Log(id);
+                Debug.Log("cock");
+                ConnectedClients[id].udp.HandleData(packet);
+                ProcessInput(packet);
+            }
                 //handle here 
 
                 
-            }
-            catch (Exception err)
-            {
-                print(err.ToString());
-            }
         }
+        catch (Exception err)
+        {
+            print(err.ToString());
+        }
+        
     }
 
     public static void SendUDPData(IPEndPoint _clientEndPoint, Packet _packet)
@@ -222,9 +214,9 @@ public class UDPServer : MonoBehaviour
                 MainThreadQueue.Clear();
                 actionToExecuteOnMainThread = false; 
             }
-            foreach(Action action in MainCopyThreadQueue)
+            for (int i = 0; i < MainCopyThreadQueue.Count; i++)
             {
-                action(); 
+                MainCopyThreadQueue[i]();
             }
         }
     }

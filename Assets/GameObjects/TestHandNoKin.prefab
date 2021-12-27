@@ -44,7 +44,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 85bcffadac98aa04280aae8719648e85, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  scale: 0
+  scale: 10
   LandMark: {fileID: 6772737587783064994, guid: 3f326f9e304d2cd46922adf7e7a4008c, type: 3}
   landmarkPos:
   - {fileID: 0}

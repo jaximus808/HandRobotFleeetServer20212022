@@ -23,6 +23,7 @@ public class Client
     public class UDP
     {
         public IPEndPoint endPoint;
+        //public IPEndPoint remoteEndPoint;
 
         private int id;
 
@@ -43,13 +44,14 @@ public class Client
 
         public void HandleData(Packet _packetData)
         {
-
+            int _packetId = _packetData.ReadInt();
             byte[] _packetBytes = _packetData.ReadBytes(_packetData.RelativeLength());
+            
             UDPServer.ExecuteOnMainThread(() =>
             {
                 using (Packet _packet = new Packet(_packetBytes))
                 {
-                    int _packetId = _packetData.ReadInt();
+                    
                     UDPServer.packetHandlers[_packetId](id, _packet);
                 }
             });

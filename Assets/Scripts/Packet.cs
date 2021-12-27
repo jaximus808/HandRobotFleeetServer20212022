@@ -2,6 +2,8 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Text;
 using System;
+using System.Net;
+using System.Net.Sockets;
 using UnityEngine;
 
 /// <summary>Sent from server to client.</summary>
@@ -27,15 +29,34 @@ public class Packet : IDisposable
     public List<byte> buffer; 
     public byte[] bytes {get; set;}
     public int readPos = 0;
+    public IPEndPoint remoteEndPoint; 
 
-    public Packet(byte[] packet)
+    public Packet()
     {
+        buffer = new List<byte>(); // Initialize buffer
+        readPos = 0; // Set readPos to 0
+    }
+    public Packet(IPEndPoint endPoint)
+    {
+        remoteEndPoint = endPoint; 
+        buffer = new List<byte>(); // Initialize buffer
+        readPos = 0; // Set readPos to 0
+    }
+    public Packet(byte[] packet, IPEndPoint endPoint)
+    {
+        remoteEndPoint = endPoint;
         buffer = new List<byte>();
         readPos = 0;
 
         SetBytes(packet);
     }
-
+    public Packet(byte[] packet)
+    {
+        buffer = new List<byte>();
+        readPos = 0;
+        SetBytes(packet);
+        Debug.Log(bytes.Length);
+    }
     public void SetBytes(byte[] _data)
     {
         Write(_data);
@@ -76,6 +97,7 @@ public class Packet : IDisposable
     public int ReadInt()
     {
         if(bytes.Length < readPos) throw new Exception("Cannot read Int: You are out of range");
+        Debug.Log(bytes.Length);
         int data = BitConverter.ToInt32(bytes, readPos);
         readPos+=4;
         return data; 

@@ -20,6 +20,7 @@ public class HandRendererOne : MonoBehaviour
         for(int i = 0; i < 21; i++)
         {
             landmarkPos[i] = Instantiate(LandMark, transform.position,Quaternion.identity).transform;
+            //landmarkPos[i].position = 50f;
         }
     }
 
@@ -38,8 +39,11 @@ public class HandRendererOne : MonoBehaviour
         updated = false; 
         for(int i = 0; i < 21; i++)
         {
+            Debug.Log("balls");
             Debug.Log(buffer[i]);
+            Debug.Log(transform.position + scale * new Vector3(buffer[i].x, buffer[i].y * -1, buffer[i].z));
             landmarkPos[i].position = transform.position+scale* new Vector3(buffer[i].x, buffer[i].y*-1, buffer[i].z);
+            Debug.Log(landmarkPos[i].position);
         }
     }
 }
