@@ -39,11 +39,11 @@ public class HandRendererOne : MonoBehaviour
         updated = false; 
         for(int i = 0; i < 21; i++)
         {
-            Debug.Log("balls");
-            Debug.Log(buffer[i]);
-            Debug.Log(transform.position + scale * new Vector3(buffer[i].x, buffer[i].y * -1, buffer[i].z));
+            //Debug.Log("balls");
+            //Debug.Log(buffer[i]);
+            //Debug.Log(transform.position + scale * new Vector3(buffer[i].x, buffer[i].y * -1, buffer[i].z));
             landmarkPos[i].position = transform.position+scale* new Vector3(buffer[i].x, buffer[i].y*-1, buffer[i].z);
-            Debug.Log(landmarkPos[i].position);
+            //Debug.Log(landmarkPos[i].position);
         }
     }
 }

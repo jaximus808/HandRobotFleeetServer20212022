@@ -55,7 +55,6 @@ public class Packet : IDisposable
         buffer = new List<byte>();
         readPos = 0;
         SetBytes(packet);
-        Debug.Log(bytes.Length);
     }
     public void SetBytes(byte[] _data)
     {
@@ -97,7 +96,7 @@ public class Packet : IDisposable
     public int ReadInt()
     {
         if(bytes.Length < readPos) throw new Exception("Cannot read Int: You are out of range");
-        Debug.Log(bytes.Length);
+        
         int data = BitConverter.ToInt32(bytes, readPos);
         readPos+=4;
         return data; 

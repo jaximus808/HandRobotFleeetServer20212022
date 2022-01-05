@@ -129,7 +129,8 @@ public class UDPServer : MonoBehaviour
                 //check for new client connection
             int id = packet.ReadInt();
             //if -1 means new connection 
-            
+            //Debug.Log("boom!");
+            Debug.Log("cum");
             if(id == -1 )
             {
                     //will need to check if hand, or maybe attach to hand 
@@ -138,13 +139,21 @@ public class UDPServer : MonoBehaviour
                 {
                     UDPServer.packetHandlers[0](id, packet);
                 });
+                using (Packet _test = new Packet())
+                {
+                    _test.Write("sup");
+                    IPEndPoint testIp = new IPEndPoint(IPAddress.Parse("192.168.1.15"), 4000);
+                    UDPServer.SendUDPData(testIp, _test);
+                }
 
+            }
+            else if(id == 1)
+            {
+                Debug.Log("work!");
             }
             else if(ConnectedClients[id].udp.endPoint.ToString() == anyIP.ToString() )
             {
-                Debug.Log("sup");
-                Debug.Log(id);
-                Debug.Log("cock");
+                
                 ConnectedClients[id].udp.HandleData(packet);
                 ProcessInput(packet);
             }
