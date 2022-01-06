@@ -10,7 +10,6 @@ using UnityEngine;
 public class Client 
 {
     public int id;
-    
 
     public UDP udp; 
 

@@ -20,6 +20,8 @@ public class UDPServer : MonoBehaviour
     public static Dictionary<int, HandRendererOne[]> HandManagers = new Dictionary<int, HandRendererOne[]>();
     public static Dictionary<int, Client> ConnectedClients = new Dictionary<int, Client>();
 
+    public static Dictionary<int, ArmClient> ConnectedArmClients = new Dictionary<int, ArmClient>(); 
+
     private static readonly List<Action> MainThreadQueue = new List<Action>();
     private static readonly List<Action> MainCopyThreadQueue = new List<Action>();
     private static bool actionToExecuteOnMainThread = false; 
@@ -62,6 +64,7 @@ public class UDPServer : MonoBehaviour
         {
             {0, PacketHandler.HandleNewConnection},
             {1, PacketHandler.HandleHand},
+            {2, PacketHandler.HandleNewArmConnection},
         };
 
 
@@ -82,6 +85,13 @@ public class UDPServer : MonoBehaviour
             //Debug.Log(data[i]);
         }
         return data;
+    }
+
+    public static void CreateArmClient(int _id, IPEndPoint endPoint, string _armPass )
+    {
+        ConnectedArmClients.Add(_id, new ArmClient(_id, _armPass));
+        ConnectedArmClients[_id].udp.Connect(endPoint);
+        Debug.Log($"ArmClient created with id: {ConnectedArmClients[_id].id} created with armPass: {ConnectedArmClients[_id].armPass}");
     }
 
     public static void CreateClient(int _fromClient, IPEndPoint endpoint)
@@ -123,14 +133,48 @@ public class UDPServer : MonoBehaviour
         {
             IPEndPoint anyIP = new IPEndPoint(IPAddress.Any, 0);
             byte[] data = client.EndReceive(_result,ref anyIP);
+            for(int i = 0; i < data.Length; i++)
+            {
+                Debug.Log(data[i]);
+            }
             client.BeginReceive(ReceiveUDPData, null);
                 // bool hnads = Encoding.UTF8.GetString(data);
             Packet packet = new Packet(data, anyIP);
-                //check for new client connection
+
+            Debug.Log($"Length of array {data.Length}");
+            //check for new client connection
+            int typeOfConnection = packet.ReadInt();
+            
+            Debug.Log(typeOfConnection);
+            
+            if(typeOfConnection == -1)
+            {
+                string pass = packet.ReadString(); 
+                if(pass != "Nwifugu31393g2HSDUg18173d_fb3yja")
+                {
+                    Debug.Log("wrong arm pass");
+                    return;
+                }
+                int packetID = packet.ReadInt();
+                int armid = packet.ReadInt();
+                if(packetID == 0) //make the packetId just be two from the arm lol
+                {
+                    //string armPass = packet.ReadString();
+                    UDPServer.ExecuteOnMainThread(() =>
+                    {
+                        UDPServer.packetHandlers[2](armid, packet);
+                    });
+                }
+                
+                return;
+            }
+
+
             int id = packet.ReadInt();
             //if -1 means new connection 
             //Debug.Log("boom!");
-            Debug.Log("cum");
+
+
             if(id == -1 )
             {
                     //will need to check if hand, or maybe attach to hand 
@@ -139,17 +183,13 @@ public class UDPServer : MonoBehaviour
                 {
                     UDPServer.packetHandlers[0](id, packet);
                 });
-                using (Packet _test = new Packet())
-                {
-                    _test.Write("sup");
-                    IPEndPoint testIp = new IPEndPoint(IPAddress.Parse("192.168.1.15"), 4000);
-                    UDPServer.SendUDPData(testIp, _test);
-                }
+                //using (Packet _test = new Packet())
+                //{
+                //    _test.Write("sup");
+                //    IPEndPoint testIp = new IPEndPoint(IPAddress.Parse("192.168.1.15"), 4000);
+                //    UDPServer.SendUDPData(testIp, _test);
+                //}
 
-            }
-            else if(id == 1)
-            {
-                Debug.Log("work!");
             }
             else if(ConnectedClients[id].udp.endPoint.ToString() == anyIP.ToString() )
             {

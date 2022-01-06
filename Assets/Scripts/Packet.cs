@@ -107,6 +107,25 @@ public class Packet : IDisposable
         return new Vector3(ReadFloat(),ReadFloat(),ReadFloat());
     }
 
+    public String ReadString()
+    {
+        try
+        {
+            int _length = ReadInt();
+            string _value = Encoding.ASCII.GetString(bytes, readPos, _length);
+            if (_value.Length > 0)
+            {
+                // If _moveReadPos is true string is not empty
+                readPos += _length; // Increase readPos by the length of the string
+            }
+            return _value; // Return the string
+        }
+        catch
+        {
+            throw new Exception("Could not read value of type 'string'!");
+        }
+    }
+
     #region Writing
 
     public void Write(byte _value)

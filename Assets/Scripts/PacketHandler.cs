@@ -36,4 +36,10 @@ public static class PacketHandler
             }
         }
     }
+    public static void HandleNewArmConnection(int _fromClient, Packet _packet)
+    {
+        string _armPass = _packet.ReadString(); 
+        UDPServer.CreateArmClient(_fromClient, _packet.remoteEndPoint,_armPass);
+
+    }
 }
