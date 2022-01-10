@@ -38,8 +38,16 @@ public static class PacketHandler
     }
     public static void HandleNewArmConnection(int _fromClient, Packet _packet)
     {
-        string _armPass = _packet.ReadString(); 
-        UDPServer.CreateArmClient(_fromClient, _packet.remoteEndPoint,_armPass);
+        string _armPass = _packet.ReadString();
+        string _nodePass = _packet.ReadString(); 
+        UDPServer.CreateArmClient(_fromClient, _packet.remoteEndPoint,_armPass, _nodePass);
 
+    }
+
+    public static void PingCheck(int _fromClient, Packet _packet)
+    {
+        Debug.Log($"pinged recieved from client ${_fromClient}");
+        bool arm = _packet.ReadBool(); 
+        UDPServer.HandlePing(_fromClient, arm);
     }
 }

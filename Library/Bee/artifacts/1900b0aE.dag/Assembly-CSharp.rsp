@@ -343,8 +343,10 @@
 "Assets/Scripts/HandRendererOne.cs"
 "Assets/Scripts/Packet.cs"
 "Assets/Scripts/PacketHandler.cs"
+"Assets/Scripts/ReturnObjects/ReturnData.cs"
 "Assets/Scripts/SceneManager.cs"
 "Assets/Scripts/UDPServer.cs"
+"Assets/Scripts/WebCommunicator.cs"
 -langversion:9.0
 
 /deterministic

@@ -6,7 +6,7 @@ using System.Net;
 using System.Net.Sockets;
 using UnityEngine;
 using System.Threading;
-
+using System.Linq; 
 public class UDPServer : MonoBehaviour
 {
     // Start is called before the first frame update
@@ -24,16 +24,27 @@ public class UDPServer : MonoBehaviour
 
     private static readonly List<Action> MainThreadQueue = new List<Action>();
     private static readonly List<Action> MainCopyThreadQueue = new List<Action>();
-    private static bool actionToExecuteOnMainThread = false; 
+    private static bool actionToExecuteOnMainThread = false;
+
+    private static List<int> pingedUserIds = new List<int>();
+
+    private static List<int> pingedArmIds = new List<int>();
 
     public delegate void Handler(int _fromClient, Packet _packet);
 
     public static Dictionary<int, Handler> packetHandlers;
 
-    public bool active = false; 
+    public bool active = false;
+    public static bool pinging = false; 
 
     public int inPort = 8000; //port to receive data
     public int outPort = 8001; //port to send data
+
+    public float setPingTimer;
+    private float curPingTimer;
+
+    public float setPingCheckTimer;
+    private float curPingCheckTimer;
 
     private static UdpClient client; 
     private static IPEndPoint remoteEndPoint; 
@@ -60,11 +71,14 @@ public class UDPServer : MonoBehaviour
         client.BeginReceive(ReceiveUDPData,null);
         //0 connect
         //1 read and handle vector data
+        curPingTimer = setPingTimer;
+        curPingCheckTimer = setPingCheckTimer; 
         packetHandlers = new Dictionary<int, Handler>()
         {
             {0, PacketHandler.HandleNewConnection},
             {1, PacketHandler.HandleHand},
             {2, PacketHandler.HandleNewArmConnection},
+            {3, PacketHandler.PingCheck}
         };
 
 
@@ -81,17 +95,33 @@ public class UDPServer : MonoBehaviour
         for(int i = 0; i < 21; i++)
         {
             data[i] = packet.ReadVector3();
-            Debug.Log(data[i]);
             //Debug.Log(data[i]);
         }
         return data;
     }
 
-    public static void CreateArmClient(int _id, IPEndPoint endPoint, string _armPass )
+    public async static void CreateArmClient(int _id, IPEndPoint endPoint, string _armPass, string _nodePass )
     {
+        Dictionary<string, string> data = new Dictionary<string, string>()
+        {
+            //hide this later
+            {"fleetPass", "FHwfu2ifdssfodf1fdsFGidfdfge82dfwefgyhw32du"},
+            {"pass", _nodePass },
+            {"id", _id.ToString() }
+        };
+        ReturnData content = await WebCommunicator.PostSend("/server/auth/connectedArmClient",data);
+        Debug.Log(content.error);
+        Debug.Log(content.message);
+        if (content.error) return;
         ConnectedArmClients.Add(_id, new ArmClient(_id, _armPass));
         ConnectedArmClients[_id].udp.Connect(endPoint);
         Debug.Log($"ArmClient created with id: {ConnectedArmClients[_id].id} created with armPass: {ConnectedArmClients[_id].armPass}");
+        using (Packet _packet = new Packet())
+        {
+            _packet.Write(0);
+            _packet.Write(1);
+            ConnectedArmClients[_id].udp.SendData(_packet);
+        }
     }
 
     public static void CreateClient(int _fromClient, IPEndPoint endpoint)
@@ -133,19 +163,14 @@ public class UDPServer : MonoBehaviour
         {
             IPEndPoint anyIP = new IPEndPoint(IPAddress.Any, 0);
             byte[] data = client.EndReceive(_result,ref anyIP);
-            for(int i = 0; i < data.Length; i++)
-            {
-                Debug.Log(data[i]);
-            }
+            
             client.BeginReceive(ReceiveUDPData, null);
                 // bool hnads = Encoding.UTF8.GetString(data);
             Packet packet = new Packet(data, anyIP);
 
-            Debug.Log($"Length of array {data.Length}");
             //check for new client connection
             int typeOfConnection = packet.ReadInt();
             
-            Debug.Log(typeOfConnection);
             
             if(typeOfConnection == -1)
             {
@@ -164,6 +189,19 @@ public class UDPServer : MonoBehaviour
                     {
                         UDPServer.packetHandlers[2](armid, packet);
                     });
+                }
+                else if(packetID == 1)
+                {
+                    Packet _packet = new Packet();
+                    
+                    _packet.Write(true); // 0 means arm
+                    _packet.ToArray();
+                    UDPServer.ExecuteOnMainThread(() =>
+                    {
+                        UDPServer.packetHandlers[3](armid, _packet);
+                    });
+                    
+                    
                 }
                 
                 return;
@@ -235,7 +273,118 @@ public class UDPServer : MonoBehaviour
 
     private void FixedUpdate()
     {
+        if (curPingTimer <= 0f)
+        {
+            StartClientPing();
+            curPingTimer = setPingTimer;
+            Debug.Log("start pinging");
+        }
+        else
+        {
+            curPingTimer -= Time.fixedDeltaTime;
+
+        }
+        if (pinging)
+        {
+            if (curPingCheckTimer <= 0f)
+            {
+                //start clientCheck
+                CheckClientDisconnect();
+                curPingCheckTimer = setPingCheckTimer;
+                pinging = false;
+            }
+            else
+            {
+                curPingCheckTimer -= Time.fixedDeltaTime;
+            }
+        }
         UpdateMain();
+    }
+
+    private async void DisconnectFromMasterServer(string delUsers)
+    {
+        Dictionary<string, string> data = new Dictionary<string, string>()
+        {
+            //hide this later
+            {"fleetPass", "FHwfu2ifdssfodf1fdsFGidfdfge82dfwefgyhw32du"},
+            {"delete", delUsers },
+        };
+        ReturnData content = await WebCommunicator.PostSend("/server/auth/disconnectFleet", data);
+        Debug.Log(content.error);
+        Debug.Log(content.message);
+
+    }
+
+    private void CheckClientDisconnect()
+    {
+        for (int i = 0; i < pingedUserIds.Count; i++)
+        {
+            ConnectedClients.Remove(pingedUserIds[i]);
+            Debug.Log($"Connected Client ${i} Timed out");
+        }
+        string deletedUsers = "";
+        for (int i = 0; i < pingedArmIds.Count; i++)
+        {
+            ConnectedArmClients.Remove(pingedArmIds[i]);
+            deletedUsers += $"{pingedArmIds[i]},"; 
+            Debug.Log($"Connected Arm Client ${i} Timed out");
+        }
+
+
+        if (pingedUserIds.Count >0) pingedUserIds.Clear();
+        if (pingedArmIds.Count > 0)
+        {
+            DisconnectFromMasterServer(deletedUsers);
+            pingedArmIds.Clear();
+        }
+            Debug.Log("pinging done");
+    }
+
+    private void StartClientPing()
+    {
+
+        pingedUserIds.AddRange(ConnectedClients.Keys.ToArray());
+        pingedArmIds.AddRange(ConnectedArmClients.Keys.ToArray());
+
+        for(int i = 0; i < pingedUserIds.Count; i++)
+        {
+            using (Packet _packet = new Packet())
+            {
+                _packet.Write(1);
+                ConnectedClients[pingedUserIds[i]].udp.SendData(_packet);
+            }
+                
+        }
+        Debug.Log(ConnectedArmClients.Count); 
+        for (int i = 0; i < pingedArmIds.Count; i++)
+        {
+            using (Packet _packet = new Packet())
+            {
+                _packet.Write(1);
+                ConnectedArmClients[pingedArmIds[i]].udp.SendData(_packet);
+            }
+
+        }
+        pinging = true; 
+
+    }
+
+    public static void HandlePing(int _id, bool arm)
+    {
+        if (!pinging) return; 
+        if(arm)
+        {
+            int index = pingedArmIds.IndexOf(_id);
+            if (index == -1) return;
+            pingedArmIds.RemoveAt(index); 
+
+        }
+        else
+        {
+            int index = pingedUserIds.IndexOf(_id);
+            if (index == -1) return;
+            pingedUserIds.RemoveAt(index);
+        }
     }
 
     public static void ExecuteOnMainThread(Action _action)
@@ -270,12 +419,34 @@ public class UDPServer : MonoBehaviour
         }
     }
 
+    private void HandleServerClose()
+    {
+        Packet packet = new Packet();
+        packet.Write(10);
+
+        foreach(KeyValuePair<int, Client> _client in ConnectedClients)
+        {
+            _client.Value.udp.SendData(packet);
+        }
+        string deletedUsers = "";
+        foreach (KeyValuePair<int, ArmClient> _client in ConnectedArmClients)
+        {
+            _client.Value.udp.SendData(packet);
+            deletedUsers += $"{_client.Key},";
+        }
+        DisconnectFromMasterServer(deletedUsers); 
+
+
+    }
+
     //Prevent crashes - close clients and threads properly!
     void OnDisable()
     {
         if (receiveThread != null)
             receiveThread.Abort();
 
+        HandleServerClose(); 
         client.Close();
+        
     }
 }

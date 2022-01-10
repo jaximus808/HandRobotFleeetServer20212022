@@ -156,6 +156,8 @@ MonoBehaviour:
   active: 0
   inPort: 8000
   outPort: 8001
+  setPingTimer: 15
+  setPingCheckTimer: 5
 --- !u!4 &359353764
 Transform:
   m_ObjectHideFlags: 0
