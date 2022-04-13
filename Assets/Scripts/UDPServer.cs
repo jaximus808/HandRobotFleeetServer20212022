@@ -121,6 +121,7 @@ public class UDPServer : MonoBehaviour
             {"pass", _nodePass },
             {"id", _id.ToString() }
         };
+        Debug.Log("WAHH??");
         ReturnData content = await WebCommunicator.PostSend("/server/auth/connectedArmClient",data);
         Debug.Log(content.error);
         Debug.Log(content.message);
@@ -136,7 +137,7 @@ public class UDPServer : MonoBehaviour
         }
     }
 
-    public static void CreateClient(int _fromClient, IPEndPoint endpoint)
+    public static void CreateClient(int _fromClient, IPEndPoint endpoint, int armId)
     {
         int _id = 0;
         foreach (KeyValuePair<int, Client> _client in ConnectedClients)
@@ -150,12 +151,13 @@ public class UDPServer : MonoBehaviour
                 break;
             }
         }
-        ConnectedClients.Add(_id, new Client(_id));
+        ConnectedClients.Add(_id, new Client(_id, armId));
         ConnectedClients[_id].udp.Connect(endpoint);
         HandRendererOne leftHand = Instantiate(HandRenderer, new Vector3(-2f, 10f, 3.2f), Quaternion.identity).GetComponent<HandRendererOne>();
         HandRendererOne rightHand = Instantiate(HandRenderer, new Vector3(-7.7f, 10f, 3.2f), Quaternion.identity).GetComponent<HandRendererOne>();
         HandRendererOne[] newHands = new HandRendererOne[2] { leftHand, rightHand };
 
+        rightHand.SetArmId(armId); 
         HandManagers.Add(_id, newHands);
         Debug.Log("New Client Created!");
         
@@ -166,8 +168,8 @@ public class UDPServer : MonoBehaviour
             packet.Write(_id);
             ConnectedClients[_id].udp.SendData(packet);
         }
-        
     }
+
 
     private void ReceiveUDPData(IAsyncResult _result)
     {
@@ -184,18 +186,24 @@ public class UDPServer : MonoBehaviour
             //check for new client connection
             int typeOfConnection = packet.ReadInt();
             
+            Debug.Log(typeOfConnection);
+
             
             if(typeOfConnection == -1)
             {
                 string pass = packet.ReadString(); 
+
+                Debug.Log(pass);
                 if(pass != "Nwifugu31393g2HSDUg18173d_fb3yja")
                 {
                     Debug.Log("wrong arm pass");
                     return;
                 }
                 int packetID = packet.ReadInt();
+
+                Debug.Log(packetID);
                 int armid = packet.ReadInt();
-                if(packetID == 0) //make the packetId just be two from the arm lol
+                if(packetID == 0) 
                 {
                     //string armPass = packet.ReadString();
                     UDPServer.ExecuteOnMainThread(() =>
@@ -222,24 +230,14 @@ public class UDPServer : MonoBehaviour
 
 
             int id = packet.ReadInt();
-            //if -1 means new connection 
-            //Debug.Log("boom!");
 
 
             if(id == -1 )
             {
-                    //will need to check if hand, or maybe attach to hand 
-                    //new connection
                 UDPServer.ExecuteOnMainThread(() =>
                 {
                     UDPServer.packetHandlers[0](id, packet);
                 });
-                //using (Packet _test = new Packet())
-                //{
-                //    _test.Write("sup");
-                //    IPEndPoint testIp = new IPEndPoint(IPAddress.Parse("192.168.1.15"), 4000);
-                //    UDPServer.SendUDPData(testIp, _test);
-                //}
 
             }
             else if(ConnectedClients[id].udp.endPoint.ToString() == anyIP.ToString() )
@@ -249,8 +247,7 @@ public class UDPServer : MonoBehaviour
                 ProcessInput(packet);
             }
                 //handle here 
-
-                
+        
         }
         catch (Exception err)
         {
@@ -324,8 +321,9 @@ public class UDPServer : MonoBehaviour
                 curMasterAttemptTimer -= Time.fixedDeltaTime; 
             }
 
-            UpdateMain();
         }       
+
+            UpdateMain();
     }
 
         

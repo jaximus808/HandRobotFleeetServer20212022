@@ -4,6 +4,7 @@ using UnityEngine;
 
 public class HandRendererOne : MonoBehaviour
 {
+    
 
     public float scale;
 
@@ -15,7 +16,13 @@ public class HandRendererOne : MonoBehaviour
     private int[] currentDifference = new int[4] { 0, 0, 0, 0 };
     private bool updated = false; 
     private Vector3[] buffer;
-    
+    private int armId;
+
+    public void SetArmId(int _armId)
+    {
+        armId = _armId;
+    }
+
     // Start is called before the first frame update
     void Start()
     {
@@ -27,6 +34,7 @@ public class HandRendererOne : MonoBehaviour
         }
     }
 
+
     // Update is called once per frame
     public void UpdateHands(Vector3[] newPos)
     {
@@ -36,20 +44,29 @@ public class HandRendererOne : MonoBehaviour
         
     }
 
+    public void PrintDifference()
+    {
+    }
+
     public int[] CalculateRotationJoints()
     {
+        Debug.Log("Start");
         for(int i = 0; i < 4; i++)
         {
-            float hyp = Vector3.Distance(landmarkPos[5+i*4].position, landmarkPos[6 + i * 4].position);
-            float adj = Vector3.Distance(new Vector3(landmarkPos[5 + i * 4].position.x, 0, landmarkPos[5 + i * 4].position.z), new Vector3(landmarkPos[6 + i * 4].position.x, 0, landmarkPos[6 + i * 4].position.z));
-            float ang = Mathf.Acos(adj/hyp);
-            
-            currentDifference[i] = Mathf.Abs(previousAngle[i] - (int)ang); 
-            previousAngle[i] = (int)ang;
+            float c = Vector3.Distance(landmarkPos[5+i*4].position, landmarkPos[6 + i * 4].position);
+            float b = Vector3.Distance(landmarkPos[5+i*4].position, landmarkPos[0].position);
+            float a = Vector3.Distance(landmarkPos[6 + i * 4].position, landmarkPos[0].position);
 
+            float ang = Mathf.Acos((b*b + c*c -a*a )/(2*b*c)); 
+
+            previousAngle[i] = (int)(((Mathf.Rad2Deg*(ang)-80f)/90 *360 ));
+            Debug.Log(previousAngle[i]);
         }
-        return currentDifference; 
+
+        Debug.Log("End");
+        return previousAngle; 
     }
+
 
     private void FixedUpdate()
     {
@@ -63,5 +80,17 @@ public class HandRendererOne : MonoBehaviour
             landmarkPos[i].position = transform.position+scale* new Vector3(buffer[i].x, buffer[i].y*-1, buffer[i].z);
             //Debug.Log(landmarkPos[i].position);
         }
+        if (armId == 0) return;
+        CalculateRotationJoints();
+        using (Packet _packet = new Packet())
+        {
+            _packet.Write(2);
+            _packet.Write(previousAngle[0]);
+            _packet.Write(previousAngle[1]);
+            _packet.Write(previousAngle[2]);
+            UDPServer.ConnectedArmClients[armId].udp.SendData(_packet);
+
+        }
+        
     }
 }

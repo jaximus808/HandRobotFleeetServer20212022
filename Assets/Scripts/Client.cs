@@ -10,13 +10,15 @@ using UnityEngine;
 public class Client 
 {
     public int id;
+    public int armId;
 
     public UDP udp; 
 
-    public Client(int _id)
+    public Client(int _id, int _armId )
     {
         id = _id;
         udp = new UDP(id);
+        armId = _armId;
     }
 
     public class UDP
@@ -45,12 +47,12 @@ public class Client
         {
             int _packetId = _packetData.ReadInt();
             byte[] _packetBytes = _packetData.ReadBytes(_packetData.RelativeLength());
-            
+
             UDPServer.ExecuteOnMainThread(() =>
             {
                 using (Packet _packet = new Packet(_packetBytes))
                 {
-                    
+
                     UDPServer.packetHandlers[_packetId](id, _packet);
                 }
             });

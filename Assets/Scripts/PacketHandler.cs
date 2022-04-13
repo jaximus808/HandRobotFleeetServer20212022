@@ -8,8 +8,9 @@ public static class PacketHandler
     //packet 0
     public static void HandleNewConnection(int _fromClient, Packet _packet)
     {
-        UDPServer.CreateClient(_fromClient,_packet.remoteEndPoint);
-        
+        int armId = _packet.ReadInt();
+        UDPServer.CreateClient(_fromClient,_packet.remoteEndPoint, armId );
+
     }
 
     //packet 1
@@ -29,6 +30,7 @@ public static class PacketHandler
             Vector3[] handPoints1 = UDPServer.ReadHandPoints(_packet);
             //would then apply to hands but do later rn;
             UDPServer.HandManagers[_fromClient][side].UpdateHands(handPoints1);
+            UDPServer.HandManagers[_fromClient][side].PrintDifference();
             if (handCount == 2)
             {
                 Vector3[] handPoints2 = UDPServer.ReadHandPoints(_packet);
@@ -38,6 +40,7 @@ public static class PacketHandler
     }
     public static void HandleNewArmConnection(int _fromClient, Packet _packet)
     {
+        Debug.Log("HELLO WTF LOL");
         string _armPass = _packet.ReadString();
         string _nodePass = _packet.ReadString(); 
         UDPServer.CreateArmClient(_fromClient, _packet.remoteEndPoint,_armPass, _nodePass);
