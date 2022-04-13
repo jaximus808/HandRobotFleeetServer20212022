@@ -7,6 +7,7 @@ using System.Net.Sockets;
 using UnityEngine;
 using System.Threading;
 using System.Linq; 
+using CandyCoded.env; 
 public class UDPServer : MonoBehaviour
 {
     // Start is called before the first frame update
@@ -42,6 +43,8 @@ public class UDPServer : MonoBehaviour
 
     public float setPingTimer;
     private float curPingTimer;
+    public float setMasterAttemptTimer;
+    private float curMasterAttemptTimer;
 
     public float setPingCheckTimer;
     private float curPingCheckTimer;
@@ -49,6 +52,12 @@ public class UDPServer : MonoBehaviour
     private static UdpClient client; 
     private static IPEndPoint remoteEndPoint; 
     private static Thread receiveThread;
+
+    private static Dictionary<string, string> envContent; 
+
+    private bool connectedToMasterServer = false;     
+
+    public String MasterTargetPort; 
 
     public void SendData(string message)
     {
@@ -65,6 +74,8 @@ public class UDPServer : MonoBehaviour
 
     private void Awake()
     {
+        envContent = env.ParseEnvironmentFile();
+        WebCommunicator.setHost(MasterTargetPort);
         remoteEndPoint = new IPEndPoint(IPAddress.Any, outPort);
         HandRenderer = sethand;
         client = new UdpClient(inPort);
@@ -73,6 +84,7 @@ public class UDPServer : MonoBehaviour
         //1 read and handle vector data
         curPingTimer = setPingTimer;
         curPingCheckTimer = setPingCheckTimer; 
+        curMasterAttemptTimer = 0f;
         packetHandlers = new Dictionary<int, Handler>()
         {
             {0, PacketHandler.HandleNewConnection},
@@ -105,7 +117,7 @@ public class UDPServer : MonoBehaviour
         Dictionary<string, string> data = new Dictionary<string, string>()
         {
             //hide this later
-            {"fleetPass", "FHwfu2ifdssfodf1fdsFGidfdfge82dfwefgyhw32du"},
+            {"fleetPass", UDPServer.envContent["FleetServerPass"]},
             {"pass", _nodePass },
             {"id", _id.ToString() }
         };
@@ -154,6 +166,7 @@ public class UDPServer : MonoBehaviour
             packet.Write(_id);
             ConnectedClients[_id].udp.SendData(packet);
         }
+        
     }
 
     private void ReceiveUDPData(IAsyncResult _result)
@@ -273,17 +286,18 @@ public class UDPServer : MonoBehaviour
 
     private void FixedUpdate()
     {
-        if (curPingTimer <= 0f)
-        {
-            StartClientPing();
-            curPingTimer = setPingTimer;
-            Debug.Log("start pinging");
-        }
-        else
-        {
-            curPingTimer -= Time.fixedDeltaTime;
+            if (curPingTimer <= 0f)
+            {
+                StartClientPing();
+                curPingTimer = setPingTimer;
+                Debug.Log("start pinging");
+            }
+            else
+            {
+                curPingTimer -= Time.fixedDeltaTime;
 
-        }
+            }
+        
         if (pinging)
         {
             if (curPingCheckTimer <= 0f)
@@ -298,21 +312,61 @@ public class UDPServer : MonoBehaviour
                 curPingCheckTimer -= Time.fixedDeltaTime;
             }
         }
-        UpdateMain();
+        if(!connectedToMasterServer)
+        {
+            if(curMasterAttemptTimer <= 0f)
+            {
+                ConnectToMasterServer();
+                curMasterAttemptTimer = setMasterAttemptTimer; 
+            }
+            else
+            {
+                curMasterAttemptTimer -= Time.fixedDeltaTime; 
+            }
+
+            UpdateMain();
+        }       
     }
+
+        
 
     private async void DisconnectFromMasterServer(string delUsers)
     {
         Dictionary<string, string> data = new Dictionary<string, string>()
         {
             //hide this later
-            {"fleetPass", "FHwfu2ifdssfodf1fdsFGidfdfge82dfwefgyhw32du"},
+            {"fleetPass", envContent["FleetServerPass"]},
             {"delete", delUsers },
         };
         ReturnData content = await WebCommunicator.PostSend("/server/auth/disconnectFleet", data);
         Debug.Log(content.error);
         Debug.Log(content.message);
 
+    }
+
+    private async void ConnectToMasterServer()
+    {
+
+        try
+        {
+            Debug.Log(envContent["FleetServerPass"]);
+            Dictionary<string, string> data = new Dictionary<string, string>()
+            {
+                {"fleetPass", envContent["FleetServerPass"]},
+                {"port", inPort.ToString() },
+            };
+            ReturnData content = await WebCommunicator.PostSend("/server/auth/registerFleet", data);
+            if(!content.error){
+                connectedToMasterServer = true; 
+                Debug.Log("connected to master server!");
+            } 
+            
+        }
+        catch(Exception _ex)
+        {
+            Debug.Log($"Failed Connecting to Master Server with error {_ex}");
+        }
+        
     }
 
     private void CheckClientDisconnect()

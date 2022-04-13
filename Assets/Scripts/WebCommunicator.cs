@@ -12,8 +12,15 @@ public static class WebCommunicator
 
     public static string host = "http://192.168.1.4:3000";
     private static readonly HttpClient client = new HttpClient();
+
+    public static void setHost(string newPort)
+    {
+        host = $"http://{newPort}:3000";
+    }
+
     public static async Task<ReturnData> PostSend(string _route, Dictionary<string, string> data)
     {
+
         Debug.Log($"Sending data to: {host}{_route}");
         var content = new FormUrlEncodedContent(data);
         var response = await client.PostAsync($"{host}{_route}", content);
