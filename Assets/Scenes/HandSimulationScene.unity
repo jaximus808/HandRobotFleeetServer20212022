@@ -159,7 +159,7 @@ MonoBehaviour:
   setPingTimer: 15
   setMasterAttemptTimer: 10
   setPingCheckTimer: 5
-  MasterTargetPort: 75.85.46.243
+  MasterTargetIp: 172.20.10.7
 --- !u!4 &359353764
 Transform:
   m_ObjectHideFlags: 0

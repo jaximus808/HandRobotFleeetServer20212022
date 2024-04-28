@@ -57,7 +57,7 @@ public class UDPServer : MonoBehaviour
 
     private bool connectedToMasterServer = false;     
 
-    public String MasterTargetPort; 
+    public string MasterTargetIp; 
 
     public void SendData(string message)
     {
@@ -75,7 +75,7 @@ public class UDPServer : MonoBehaviour
     private void Awake()
     {
         envContent = env.ParseEnvironmentFile();
-        WebCommunicator.setHost(MasterTargetPort);
+        WebCommunicator.setHost(MasterTargetIp);
         remoteEndPoint = new IPEndPoint(IPAddress.Any, outPort);
         HandRenderer = sethand;
         client = new UdpClient(inPort);

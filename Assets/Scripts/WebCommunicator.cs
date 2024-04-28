@@ -10,12 +10,12 @@ using Newtonsoft.Json;
 public static class WebCommunicator
 {
 
-    public static string host = "http://192.168.1.4:3000";
+    public static string host = "http://0.0.0.0:3000";
     private static readonly HttpClient client = new HttpClient();
 
     public static void setHost(string newPort)
     {
-        host = $"http://{newPort}:3000";
+        WebCommunicator.host = $"http://{newPort}:3000";
     }
 
     public static async Task<ReturnData> PostSend(string _route, Dictionary<string, string> data)
